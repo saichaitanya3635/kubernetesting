@@ -11,31 +11,15 @@ resource "azurerm_virtual_network" "vn-lovazu-kuber" {
   address_space       = ["10.0.0.0/16"]
 
 
- 
+}
 
-  subnet {
-    name           = "subnet1"
-    address_prefix = "10.0.1.0/24"
-  }
-
-  subnet {
-    name           = "subnet2"
-    address_prefix = "10.0.2.0/24"
-   
-  }
+resource "azurerm_subnet" "sn-master" {
+  name                 = "internal"
+  resource_group_name  = azurerm_resource_group.rg-lovazu-kuber.name
+  virtual_network_name = azurerm_virtual_network.vn-lovazu-kuber.name
+  address_prefixes     = ["10.0.1.0/24"]
 
   depends_on = [ azurerm_resource_group.rg-lovazu-kuber ]
-}
-resource "azurerm_network_interface" "nic-master" {
-  name                = "nic-master"
-  location            = azurerm_resource_group.rg-lovazu-kuber.location
-  resource_group_name = azurerm_resource_group.rg-lovazu-kuber.name
-
-  ip_configuration {
-    name                          = "internal"
-   
-    private_ip_address_allocation = "Dynamic"
-  }
 }
 
 resource "azurerm_public_ip" "pip-master" {
@@ -44,8 +28,24 @@ resource "azurerm_public_ip" "pip-master" {
   location            = azurerm_resource_group.rg-lovazu-kuber.location
   allocation_method   = "Static"
 
-  depends_on = [ azurerm_resource_group.lovazu-kuber ]
+  depends_on = [ azurerm_resource_group.rg-lovazu-kuber ]
 }
+
+
+resource "azurerm_network_interface" "nic-master" {
+  name                = "nic-master"
+  location            = azurerm_resource_group.rg-lovazu-kuber.location
+  resource_group_name = azurerm_resource_group.rg-lovazu-kuber.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.sn-master.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.pip-master.id
+  }
+}
+
+
 
 
 resource "tls_private_key" "lovazu-linux-key" {
